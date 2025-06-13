@@ -5,49 +5,319 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Audio Player</title>
   <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background: #111;
-      color: #fff;
-      padding: 2rem;
+    :root {
+      --primary: #8a2be2;
+      --secondary: #6a0dad;
+      --text: #ffffff;
+      --background: #121212;
+      --card-bg: #1e1e1e;
+      --hover: #9d4edd;
     }
     
-    audio {
-      margin-top: 1rem;
-      width: 90%;
-      max-width: 600px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      padding: 2rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .file-input-container {
+      position: relative;
+      margin: 1.5rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .file-input-label {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    .file-input-label:hover {
+      background: var(--hover);
+      transform: translateY(-2px);
     }
     
     input[type="file"] {
-      margin: 1rem 0;
+      position: absolute;
+      width: 0.1px;
+      height: 0.1px;
+      opacity: 0;
+      overflow: hidden;
+      z-index: -1;
     }
-    </style>
+    
+    #filename {
+      margin: 1rem 0;
+      font-size: 0.9rem;
+      color: #ccc;
+      min-height: 1.5rem;
+    }
+    
+    .audio-container {
+      margin-top: 1rem;
+      width: 100%;
+    }
+    
+    audio {
+      width: 100%;
+      border-radius: 8px;
+      outline: none;
+    }
+    
+    .custom-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    
+    .control-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .control-btn:hover {
+      background: var(--hover);
+      transform: scale(1.05);
+    }
+    
+    .control-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .control-btn i {
+      font-size: 1.2rem;
+    }
+    
+    .progress-container {
+      width: 100%;
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
+      margin: 1.5rem 0;
+      cursor: pointer;
+      position: relative;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    
+    .time-display {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 0.5rem;
+    }
+    
+    @media (max-width: 600px) {
+      .container {
+        padding: 1.5rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .custom-controls {
+        gap: 0.8rem;
+      }
+      
+      .control-btn {
+        width: 45px;
+        height: 45px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h1>🎵 Audio Player</h1>
-  <input type="file" id="fileInput" accept="audio/m4a" />
-  <p id="filename"></p>
-  <audio id="audio" controls></audio>
+  <div class="container">
+    <h1><i class="fas fa-music"></i> Audio Player</h1>
+    
+    <div class="file-input-container">
+      <label for="fileInput" class="file-input-label">
+        <i class="fas fa-upload"></i> Chọn file âm thanh
+      </label>
+      <input type="file" id="fileInput" accept="audio/m4a,audio/mp4,audio/mpeg" />
+    </div>
+    
+    <p id="filename"></p>
+    
+    <div class="audio-container">
+      <audio id="audio"></audio>
+      
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      
+      <div class="time-display">
+        <span id="currentTime">00:00</span>
+        <span id="duration">00:00</span>
+      </div>
+      
+      <div class="custom-controls">
+        <button class="control-btn" id="backwardBtn" title="Lùi 5 giây">
+          <i class="fas fa-backward-step"></i>
+        </button>
+        <button class="control-btn" id="playPauseBtn" title="Phát/Tạm dừng">
+          <i class="fas fa-play" id="playPauseIcon"></i>
+        </button>
+        <button class="control-btn" id="forwardBtn" title="Tiến 5 giây">
+          <i class="fas fa-forward-step"></i>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
     const audio = document.getElementById('audio');
     const filenameDisplay = document.getElementById('filename');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playPauseIcon = document.getElementById('playPauseIcon');
+    const backwardBtn = document.getElementById('backwardBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const currentTimeDisplay = document.getElementById('currentTime');
+    const durationDisplay = document.getElementById('duration');
     
+    // File input handling
     fileInput.addEventListener('change', function () {
       const file = this.files[0];
-      if (file && file.type === "audio/mp4" || file.name.endsWith(".m4a")) {
+      if (file && (file.type === "audio/mp4" || file.type === "audio/mpeg" || file.name.endsWith(".m4a"))) {
         const url = URL.createObjectURL(file);
         audio.src = url;
         filenameDisplay.textContent = `▶️ Đang phát: ${file.name}`;
         audio.play();
+        playPauseIcon.className = 'fas fa-pause';
       } else {
-        filenameDisplay.textContent = "❌ File không hợp lệ. Hãy chọn .m4a";
+        filenameDisplay.textContent = "❌ File không hợp lệ. Hãy chọn .m4a, .mp3 hoặc .mp4";
       }
     });
+    
+    // Play/Pause functionality
+    playPauseBtn.addEventListener('click', function() {
+      if (audio.paused) {
+        if (audio.src) {
+          audio.play();
+          playPauseIcon.className = 'fas fa-pause';
+        }
+      } else {
+        audio.pause();
+        playPauseIcon.className = 'fas fa-play';
+      }
+    });
+    
+    // Skip backward 5 seconds
+    backwardBtn.addEventListener('click', function() {
+      if (audio.src) {
+        audio.currentTime = Math.max(0, audio.currentTime - 5);
+      }
+    });
+    
+    // Skip forward 5 seconds
+    forwardBtn.addEventListener('click', function() {
+      if (audio.src) {
+        audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+      }
+    });
+    
+    // Update progress bar
+    audio.addEventListener('timeupdate', function() {
+      if (audio.duration) {
+        const progressPercent = (audio.currentTime / audio.duration) * 100;
+        progressBar.style.width = `${progressPercent}%`;
+        
+        // Update time displays
+        currentTimeDisplay.textContent = formatTime(audio.currentTime);
+        durationDisplay.textContent = formatTime(audio.duration);
+      }
+    });
+    
+    // Click on progress bar to seek
+    progressContainer.addEventListener('click', function(e) {
+      if (audio.src) {
+        const width = this.clientWidth;
+        const clickX = e.offsetX;
+        const seekTime = (clickX / width) * audio.duration;
+        audio.currentTime = seekTime;
+      }
+    });
+    
+    // Format time in MM:SS
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    // Handle audio ended event
+    audio.addEventListener('ended', function() {
+      playPauseIcon.className = 'fas fa-play';
+    });
+    
+    // Handle audio loaded metadata
+    audio.addEventListener('loadedmetadata', function() {
+      durationDisplay.textContent = formatTime(audio.duration);
+    });
   </script>
+  
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/audio/service-worker.js');
