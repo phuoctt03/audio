@@ -6,452 +6,7 @@
   <title>Audio Player</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <style>
-    :root {
-      /* Dark theme (default) */
-      --gradient-bg: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-      --gradient-primary: linear-gradient(135deg, #da22ff, #9733ee);
-      --gradient-secondary: linear-gradient(135deg, #8e2de2, #4a00e0);
-      --gradient-hover: linear-gradient(135deg, #fc00ff, #00dbde);
-      --gradient-active: linear-gradient(135deg, #00dbde, #fc00ff);
-      --text: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.7);
-      --card-bg: rgba(255, 255, 255, 0.1);
-      --control-bg: rgba(255, 255, 255, 0.1);
-      --progress-bg: rgba(255, 255, 255, 0.2);
-      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
-      --visualizer-color-1: #da22ff;
-      --visualizer-color-2: #9733ee;
-      --border-color: rgba(255, 255, 255, 0.18);
-    }
-    
-    /* Light theme */
-    html[data-theme="light"] {
-      --gradient-bg: linear-gradient(135deg, #f5f7fa, #c3cfe2);
-      --gradient-primary: linear-gradient(135deg, #667eea, #764ba2);
-      --gradient-secondary: linear-gradient(135deg, #a18cd1, #fbc2eb);
-      --gradient-hover: linear-gradient(135deg, #5f72bd, #9b23ea);
-      --gradient-active: linear-gradient(135deg, #9b23ea, #5f72bd);
-      --text: #333333;
-      --text-secondary: rgba(0, 0, 0, 0.6);
-      --card-bg: rgba(255, 255, 255, 0.7);
-      --control-bg: rgba(0, 0, 0, 0.05);
-      --progress-bg: rgba(0, 0, 0, 0.1);
-      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
-      --visualizer-color-1: #667eea;
-      --visualizer-color-2: #764ba2;
-      --border-color: rgba(0, 0, 0, 0.1);
-    }
-    
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: var(--gradient-bg);
-      background-size: 400% 400%;
-      animation: gradient 15s ease infinite;
-      color: var(--text);
-      padding: 2rem;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.5s ease;
-    }
-    
-    @keyframes gradient {
-      0% {
-        background-position: 0% 50%;
-      }
-      50% {
-        background-position: 100% 50%;
-      }
-      100% {
-        background-position: 0% 50%;
-      }
-    }
-    
-    .container {
-      width: 100%;
-      max-width: 550px;
-      background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 20px;
-      padding: 2.5rem;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--border-color);
-      transition: all 0.5s ease;
-    }
-    
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.8rem;
-    }
-    
-    h1 {
-      font-size: 2.2rem;
-      background: var(--gradient-primary);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      text-shadow: 0 2px 10px rgba(218, 34, 255, 0.3);
-    }
-    
-    .theme-toggle {
-      background: var(--gradient-secondary);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(142, 45, 226, 0.4);
-    }
-    
-    .theme-toggle:hover {
-      transform: scale(1.1);
-      background: var(--gradient-hover);
-    }
-    
-    .file-input-container {
-      position: relative;
-      margin: 1.8rem 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    
-    .file-input-label {
-      display: inline-block;
-      background: var(--gradient-primary);
-      color: white;
-      padding: 1rem 2rem;
-      border-radius: 50px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(218, 34, 255, 0.4);
-    }
-    
-    .file-input-label:hover {
-      background: var(--gradient-hover);
-      transform: translateY(-3px);
-      box-shadow: 0 7px 20px rgba(252, 0, 255, 0.5);
-    }
-    
-    .file-input-label:active {
-      transform: translateY(-1px);
-    }
-    
-    input[type="file"] {
-      position: absolute;
-      width: 0.1px;
-      height: 0.1px;
-      opacity: 0;
-      overflow: hidden;
-      z-index: -1;
-    }
-    
-    #filename {
-      margin: 1.2rem 0;
-      font-size: 1rem;
-      color: var(--text-secondary);
-      min-height: 1.5rem;
-      text-align: center;
-    }
-    
-    .audio-container {
-      margin-top: 1.5rem;
-      width: 100%;
-    }
-    
-    audio {
-      width: 100%;
-      border-radius: 8px;
-      outline: none;
-      display: none;
-    }
-    
-    /* Visualizer */
-    .visualizer-container {
-      width: 100%;
-      height: 120px;
-      margin: 1rem 0;
-      position: relative;
-      border-radius: 10px;
-      overflow: hidden;
-      background: var(--control-bg);
-    }
-    
-    #visualizer {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-    
-    .custom-controls {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-    
-    .control-btn {
-      background: var(--gradient-secondary);
-      color: white;
-      border: none;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(142, 45, 226, 0.4);
-    }
-    
-    .control-btn.play-pause {
-      width: 70px;
-      height: 70px;
-      background: var(--gradient-primary);
-      box-shadow: 0 4px 20px rgba(218, 34, 255, 0.5);
-    }
-    
-    .control-btn:hover {
-      background: var(--gradient-hover);
-      transform: scale(1.08);
-      box-shadow: 0 7px 20px rgba(252, 0, 255, 0.5);
-    }
-    
-    .control-btn:active {
-      transform: scale(0.98);
-    }
-    
-    .control-btn i {
-      font-size: 1.2rem;
-    }
-    
-    .control-btn.play-pause i {
-      font-size: 1.8rem;
-    }
-    
-    .progress-container {
-      width: 100%;
-      height: 10px;
-      background: var(--progress-bg);
-      border-radius: 50px;
-      margin: 2rem 0 1rem;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-    }
-    
-    .progress-bar {
-      height: 100%;
-      background: var(--gradient-primary);
-      border-radius: 50px;
-      width: 0%;
-      transition: width 0.1s linear;
-      position: relative;
-    }
-    
-    .progress-bar::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 12px;
-      height: 12px;
-      background: white;
-      border-radius: 50%;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    
-    .progress-container:hover .progress-bar::after {
-      opacity: 1;
-    }
-    
-    .time-display {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      margin-top: 0.8rem;
-      font-weight: 500;
-    }
-    
-    /* Volume control */
-    .volume-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 1.5rem;
-      padding: 0.8rem 1rem;
-      background: var(--control-bg);
-      border-radius: 50px;
-      transition: all 0.3s ease;
-    }
-    
-    .volume-icon {
-      color: var(--text);
-      cursor: pointer;
-      font-size: 1.2rem;
-      width: 24px;
-      text-align: center;
-    }
-    
-    .volume-slider {
-      flex-grow: 1;
-      height: 6px;
-      background: var(--progress-bg);
-      border-radius: 50px;
-      position: relative;
-      cursor: pointer;
-    }
-    
-    .volume-level {
-      height: 100%;
-      background: var(--gradient-primary);
-      border-radius: 50px;
-      width: 100%;
-    }
-    
-    /* Advanced controls */
-    .advanced-controls {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 1.5rem;
-    }
-    
-    .advanced-btn {
-      background: var(--control-bg);
-      color: var(--text);
-      border: none;
-      border-radius: 50px;
-      padding: 0.6rem 1.2rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    
-    .advanced-btn:hover {
-      background: var(--progress-bg);
-      transform: translateY(-2px);
-    }
-    
-    .advanced-btn.active {
-      background: var(--gradient-primary);
-      box-shadow: 0 4px 15px rgba(218, 34, 255, 0.4);
-      color: white;
-    }
-    
-    .speed-controls {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 1.5rem;
-    }
-    
-    .speed-btn {
-      background: var(--control-bg);
-      color: var(--text);
-      border: none;
-      border-radius: 50px;
-      padding: 0.5rem 0.8rem;
-      font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .speed-btn:hover {
-      background: var(--progress-bg);
-    }
-    
-    .speed-btn.active {
-      background: var(--gradient-primary);
-      box-shadow: 0 2px 10px rgba(218, 34, 255, 0.4);
-      color: white;
-    }
-    
-    @media (max-width: 600px) {
-      .container {
-        padding: 1.8rem;
-      }
-      
-      h1 {
-        font-size: 1.8rem;
-      }
-      
-      .custom-controls {
-        gap: 1rem;
-      }
-      
-      .control-btn {
-        width: 45px;
-        height: 45px;
-      }
-      
-      .control-btn.play-pause {
-        width: 60px;
-        height: 60px;
-      }
-      
-      .advanced-controls {
-        gap: 8px;
-      }
-      
-      .advanced-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.8rem;
-      }
-      
-      .visualizer-container {
-        height: 80px;
-      }
-    }
-    
-    /* Glowing effect */
-    @keyframes glow {
-      0% {
-        box-shadow: 0 0 5px rgba(218, 34, 255, 0.5);
-      }
-      50% {
-        box-shadow: 0 0 20px rgba(218, 34, 255, 0.8);
-      }
-      100% {
-        box-shadow: 0 0 5px rgba(218, 34, 255, 0.5);
-      }
-    }
-    
-    .playing .control-btn.play-pause {
-      animation: glow 2s infinite;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container" id="playerContainer">
@@ -462,444 +17,171 @@
       </button>
     </div>
     
-    <div class="file-input-container">
-      <label for="fileInput" class="file-input-label">
-        <i class="fas fa-upload"></i> Chọn file âm thanh
-      </label>
-      <input type="file" id="fileInput" accept="audio/m4a,audio/mp4,audio/mpeg" />
-    </div>
-    
-    <p id="filename"></p>
-    
-    <div class="audio-container">
-      <audio id="audio"></audio>
-      
-      <!-- Visualizer -->
-      <div class="visualizer-container">
-        <canvas id="visualizer"></canvas>
-      </div>
-      
-      <div class="progress-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-      
-      <div class="time-display">
-        <span id="currentTime">00:00</span>
-        <span id="duration">00:00</span>
-      </div>
-      
-      <div class="custom-controls">
-        <button class="control-btn" id="backwardBtn" title="Lùi 5 giây">
-          <i class="fas fa-backward-step"></i>
-        </button>
-        <button class="control-btn play-pause" id="playPauseBtn" title="Phát/Tạm dừng">
-          <i class="fas fa-play" id="playPauseIcon"></i>
-        </button>
-        <button class="control-btn" id="forwardBtn" title="Tiến 5 giây">
-          <i class="fas fa-forward-step"></i>
-        </button>
-      </div>
-      
-      <div class="volume-container">
-        <i class="fas fa-volume-high volume-icon" id="volumeIcon"></i>
-        <div class="volume-slider" id="volumeSlider">
-          <div class="volume-level" id="volumeLevel"></div>
+    <div class="player-section">
+      <!-- Left section: File upload and visualizer -->
+      <div class="player-left">
+        <div class="file-input-container">
+          <label for="fileInput" class="file-input-label">
+            <i class="fas fa-upload"></i> Chọn file âm thanh
+          </label>
+          <input type="file" id="fileInput" accept="audio/m4a,audio/mp4,audio/mpeg" />
+        </div>
+        
+        <p id="filename"></p>
+        
+        <!-- Visualizer -->
+        <div class="visualizer-container">
+          <canvas id="visualizer"></canvas>
         </div>
       </div>
       
-      <div class="speed-controls">
-        <button class="speed-btn" data-speed="0.5">0.5x</button>
-        <button class="speed-btn active" data-speed="1.0">1.0x</button>
-        <button class="speed-btn" data-speed="1.5">1.5x</button>
-        <button class="speed-btn" data-speed="2.0">2.0x</button>
+      <!-- Right section: Controls -->
+      <div class="player-right">
+        <div class="audio-container">
+          <audio id="audio"></audio>
+          
+          <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          
+          <div class="time-display">
+            <span id="currentTime">00:00</span>
+            <span id="duration">00:00</span>
+          </div>
+          
+          <div class="custom-controls">
+            <button class="control-btn" id="backwardBtn" title="Lùi 5 giây">
+              <i class="fas fa-backward-step"></i>
+            </button>
+            <button class="control-btn play-pause" id="playPauseBtn" title="Phát/Tạm dừng">
+              <i class="fas fa-play" id="playPauseIcon"></i>
+            </button>
+            <button class="control-btn" id="forwardBtn" title="Tiến 5 giây">
+              <i class="fas fa-forward-step"></i>
+            </button>
+          </div>
+          
+          <div class="volume-container">
+            <i class="fas fa-volume-high volume-icon" id="volumeIcon"></i>
+            <div class="volume-slider" id="volumeSlider">
+              <div class="volume-level" id="volumeLevel"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bottom section: Advanced controls in tabs -->
+    <div class="advanced-section">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="playback">
+          <i class="fas fa-sliders"></i> Playback
+        </button>
+        <button class="tab-btn" data-tab="equalizer">
+          <i class="fas fa-music"></i> Equalizer
+        </button>
+        <button class="tab-btn" data-tab="tools">
+          <i class="fas fa-tools"></i> Tools
+        </button>
       </div>
       
-      <div class="advanced-controls">
-        <button class="advanced-btn" id="loopBtn">
-          <i class="fas fa-repeat"></i> Lặp lại
-        </button>
-        <button class="advanced-btn" id="downloadBtn">
-          <i class="fas fa-download"></i> Tải xuống
-        </button>
-        <button class="advanced-btn" id="jumpStartBtn">
-          <i class="fas fa-backward-fast"></i> Về đầu
-        </button>
-        <button class="advanced-btn" id="jumpEndBtn">
-          <i class="fas fa-forward-fast"></i> Đến cuối
-        </button>
+      <div class="tab-content">
+        <!-- Playback Tab -->
+        <div class="tab-pane active" id="playback-tab">
+          <h3>Tốc độ phát</h3>
+          <div class="speed-controls">
+            <button class="speed-btn" data-speed="0.5">0.5x</button>
+            <button class="speed-btn" data-speed="0.75">0.75x</button>
+            <button class="speed-btn active" data-speed="1.0">1.0x</button>
+            <button class="speed-btn" data-speed="1.25">1.25x</button>
+            <button class="speed-btn" data-speed="1.5">1.5x</button>
+            <button class="speed-btn" data-speed="2.0">2.0x</button>
+          </div>
+          
+          <div class="playback-controls">
+            <button class="advanced-btn" id="loopBtn" title="Lặp lại">
+              <i class="fas fa-repeat"></i> Lặp lại
+            </button>
+            <button class="advanced-btn" id="jumpStartBtn">
+              <i class="fas fa-backward-fast"></i> Về đầu
+            </button>
+            <button class="advanced-btn" id="jumpEndBtn">
+              <i class="fas fa-forward-fast"></i> Đến cuối
+            </button>
+          </div>
+        </div>
+        
+        <!-- Equalizer Tab -->
+        <div class="tab-pane" id="equalizer-tab">
+          <div class="eq-presets">
+            <button class="eq-preset-btn active" data-preset="flat">
+              <i class="fas fa-equals"></i> Flat
+            </button>
+            <button class="eq-preset-btn" data-preset="bass">
+              <i class="fas fa-drum"></i> Bass Boost
+            </button>
+            <button class="eq-preset-btn" data-preset="vocal">
+              <i class="fas fa-microphone"></i> Vocal
+            </button>
+            <button class="eq-preset-btn" data-preset="electronic">
+              <i class="fas fa-bolt"></i> Electronic
+            </button>
+          </div>
+          
+          <div class="eq-sliders">
+            <div class="eq-slider">
+              <span class="eq-slider-label">Bass</span>
+              <input type="range" id="bassSlider" min="-10" max="10" value="0" step="1">
+              <span class="eq-slider-value" id="bassValue">0 dB</span>
+            </div>
+            <div class="eq-slider">
+              <span class="eq-slider-label">Mid</span>
+              <input type="range" id="midSlider" min="-10" max="10" value="0" step="1">
+              <span class="eq-slider-value" id="midValue">0 dB</span>
+            </div>
+            <div class="eq-slider">
+              <span class="eq-slider-label">Treble</span>
+              <input type="range" id="trebleSlider" min="-10" max="10" value="0" step="1">
+              <span class="eq-slider-value" id="trebleValue">0 dB</span>
+            </div>
+            <div class="eq-slider">
+              <span class="eq-slider-label">Reverb</span>
+              <input type="range" id="reverbSlider" min="0" max="100" value="0" step="1">
+              <span class="eq-slider-value" id="reverbValue">0%</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Tools Tab -->
+        <div class="tab-pane" id="tools-tab">
+          <div class="tools-grid">
+            <button class="tool-btn" id="downloadBtn" title="Tải xuống">
+              <i class="fas fa-download"></i>
+              <span>Tải xuống</span>
+            </button>
+            <button class="tool-btn" id="shareBtn" title="Chia sẻ">
+              <i class="fas fa-share-alt"></i>
+              <span>Chia sẻ</span>
+            </button>
+            <button class="tool-btn" id="infoBtn" title="Thông tin">
+              <i class="fas fa-info-circle"></i>
+              <span>Thông tin</span>
+            </button>
+            <button class="tool-btn" id="helpBtn" title="Trợ giúp">
+              <i class="fas fa-question-circle"></i>
+              <span>Trợ giúp</span>
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+    
+    <div class="footer">
+      <p>Phím tắt: Space (Phát/Dừng), ← → (Tua), ↑ ↓ (Âm lượng), M (Tắt tiếng), L (Lặp lại)</p>
     </div>
   </div>
 
-  <script>
-    const fileInput = document.getElementById('fileInput');
-    const audio = document.getElementById('audio');
-    const filenameDisplay = document.getElementById('filename');
-    const playPauseBtn = document.getElementById('playPauseBtn');
-    const playPauseIcon = document.getElementById('playPauseIcon');
-    const backwardBtn = document.getElementById('backwardBtn');
-    const forwardBtn = document.getElementById('forwardBtn');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const currentTimeDisplay = document.getElementById('currentTime');
-    const durationDisplay = document.getElementById('duration');
-    const playerContainer = document.getElementById('playerContainer');
-    const volumeIcon = document.getElementById('volumeIcon');
-    const volumeSlider = document.getElementById('volumeSlider');
-    const volumeLevel = document.getElementById('volumeLevel');
-    const loopBtn = document.getElementById('loopBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const jumpStartBtn = document.getElementById('jumpStartBtn');
-    const jumpEndBtn = document.getElementById('jumpEndBtn');
-    const speedBtns = document.querySelectorAll('.speed-btn');
-    const themeToggle = document.getElementById('themeToggle');
-    const visualizerCanvas = document.getElementById('visualizer');
-    
-    let currentFile = null;
-    let audioContext = null;
-    let analyser = null;
-    let source = null;
-    let animationId = null;
-    
-    // Theme toggle
-    themeToggle.addEventListener('click', function() {
-      const html = document.documentElement;
-      const currentTheme = html.getAttribute('data-theme');
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      
-      html.setAttribute('data-theme', newTheme);
-      
-      // Update theme toggle icon
-      const themeIcon = this.querySelector('i');
-      if (newTheme === 'dark') {
-        themeIcon.className = 'fas fa-moon';
-      } else {
-        themeIcon.className = 'fas fa-sun';
-      }
-    });
-    
-    // Initialize visualizer
-    function initVisualizer() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        
-        // Connect audio element to the audio context
-        source = audioContext.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-      }
-      
-      const canvas = visualizerCanvas;
-      const ctx = canvas.getContext('2d');
-      
-      // Set canvas dimensions
-      function resizeCanvas() {
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-      }
-      
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      
-      // Visualizer animation
-      function drawVisualizer() {
-        animationId = requestAnimationFrame(drawVisualizer);
-        
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyser.getByteFrequencyData(dataArray);
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Create gradient
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, getComputedStyle(document.documentElement).getPropertyValue('--visualizer-color-1'));
-        gradient.addColorStop(1, getComputedStyle(document.documentElement).getPropertyValue('--visualizer-color-2'));
-        
-        const barWidth = (canvas.width / bufferLength) * 2.5;
-        let x = 0;
-        
-        for (let i = 0; i < bufferLength; i++) {
-          const barHeight = (dataArray[i] / 255) * canvas.height;
-          
-          ctx.fillStyle = gradient;
-          ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-          
-          x += barWidth + 1;
-        }
-      }
-      
-      // Start visualizer
-      drawVisualizer();
-    }
-    
-    // File input handling
-    fileInput.addEventListener('change', function () {
-      const file = this.files[0];
-      if (file && (file.type === "audio/mp4" || file.type === "audio/mpeg" || file.name.endsWith(".m4a"))) {
-        currentFile = file;
-        const url = URL.createObjectURL(file);
-        audio.src = url;
-        filenameDisplay.textContent = `▶️ Đang phát: ${file.name}`;
-        
-        // Resume audio context if it's suspended (needed for Chrome)
-        if (audioContext && audioContext.state === 'suspended') {
-          audioContext.resume();
-        }
-        
-        audio.play().then(() => {
-          playPauseIcon.className = 'fas fa-pause';
-          playerContainer.classList.add('playing');
-          
-          // Initialize visualizer on first play
-          if (!analyser) {
-            initVisualizer();
-          }
-        }).catch(error => {
-          console.error("Error playing audio:", error);
-        });
-        
-        // Enable download button
-        downloadBtn.disabled = false;
-      } else {
-        filenameDisplay.textContent = "❌ File không hợp lệ. Hãy chọn .m4a, .mp3 hoặc .mp4";
-        playerContainer.classList.remove('playing');
-      }
-    });
-    
-    // Play/Pause functionality
-    playPauseBtn.addEventListener('click', function() {
-      if (audio.paused) {
-        if (audio.src) {
-          // Resume audio context if it's suspended
-          if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
-          }
-          
-          audio.play().then(() => {
-            playPauseIcon.className = 'fas fa-pause';
-            playerContainer.classList.add('playing');
-          }).catch(error => {
-            console.error("Error playing audio:", error);
-          });
-        }
-      } else {
-        audio.pause();
-        playPauseIcon.className = 'fas fa-play';
-        playerContainer.classList.remove('playing');
-      }
-    });
-    
-    // Skip backward 5 seconds
-    backwardBtn.addEventListener('click', function() {
-      if (audio.src) {
-        audio.currentTime = Math.max(0, audio.currentTime - 5);
-      }
-    });
-    
-    // Skip forward 5 seconds
-    forwardBtn.addEventListener('click', function() {
-      if (audio.src) {
-        audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
-      }
-    });
-    
-    // Update progress bar
-    audio.addEventListener('timeupdate', function() {
-      if (audio.duration) {
-        const progressPercent = (audio.currentTime / audio.duration) * 100;
-        progressBar.style.width = `${progressPercent}%`;
-        
-        // Update time displays
-        currentTimeDisplay.textContent = formatTime(audio.currentTime);
-        durationDisplay.textContent = formatTime(audio.duration);
-      }
-    });
-    
-    // Click on progress bar to seek
-    progressContainer.addEventListener('click', function(e) {
-      if (audio.src) {
-        const width = this.clientWidth;
-        const clickX = e.offsetX;
-        const seekTime = (clickX / width) * audio.duration;
-        audio.currentTime = seekTime;
-      }
-    });
-    
-    // Volume control
-    volumeSlider.addEventListener('click', function(e) {
-      if (audio.src) {
-        const width = this.clientWidth;
-        const clickX = e.offsetX;
-        const volume = clickX / width;
-        
-        audio.volume = volume;
-        volumeLevel.style.width = `${volume * 100}%`;
-        
-        // Update volume icon
-        updateVolumeIcon(volume);
-      }
-    });
-    
-    // Toggle mute
-    volumeIcon.addEventListener('click', function() {
-      if (audio.src) {
-        if (audio.muted) {
-          audio.muted = false;
-          volumeLevel.style.width = `${audio.volume * 100}%`;
-          updateVolumeIcon(audio.volume);
-        } else {
-          audio.muted = true;
-          volumeLevel.style.width = '0%';
-          volumeIcon.className = 'fas fa-volume-xmark volume-icon';
-        }
-      }
-    });
-    
-    // Update volume icon based on level
-    function updateVolumeIcon(volume) {
-      if (volume === 0) {
-        volumeIcon.className = 'fas fa-volume-xmark volume-icon';
-      } else if (volume < 0.5) {
-        volumeIcon.className = 'fas fa-volume-low volume-icon';
-      } else {
-        volumeIcon.className = 'fas fa-volume-high volume-icon';
-      }
-    }
-    
-    // Loop button
-    loopBtn.addEventListener('click', function() {
-      if (audio.src) {
-        audio.loop = !audio.loop;
-        this.classList.toggle('active');
-      }
-    });
-    
-    // Download button
-    downloadBtn.addEventListener('click', function() {
-      if (currentFile) {
-        const url = URL.createObjectURL(currentFile);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = currentFile.name;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-    });
-    
-    // Jump to start
-    jumpStartBtn.addEventListener('click', function() {
-      if (audio.src) {
-        audio.currentTime = 0;
-      }
-    });
-    
-    // Jump to end
-    jumpEndBtn.addEventListener('click', function() {
-      if (audio.src) {
-        audio.currentTime = audio.duration - 0.1;
-      }
-    });
-    
-    // Playback speed
-    speedBtns.forEach(btn => {
-      btn.addEventListener('click', function() {
-        if (audio.src) {
-          const speed = parseFloat(this.getAttribute('data-speed'));
-          audio.playbackRate = speed;
-          
-          // Update active button
-          speedBtns.forEach(b => b.classList.remove('active'));
-          this.classList.add('active');
-        }
-      });
-    });
-    
-    // Format time in MM:SS
-    function formatTime(seconds) {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    
-    // Handle audio ended event
-    audio.addEventListener('ended', function() {
-      if (!audio.loop) {
-        playPauseIcon.className = 'fas fa-play';
-        playerContainer.classList.remove('playing');
-      }
-    });
-    
-    // Handle audio loaded metadata
-    audio.addEventListener('loadedmetadata', function() {
-      durationDisplay.textContent = formatTime(audio.duration);
-    });
-    
-    // Clean up visualizer when audio is paused
-    audio.addEventListener('pause', function() {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-    });
-    
-    // Restart visualizer when audio is played
-    audio.addEventListener('play', function() {
-      if (analyser && !animationId) {
-        initVisualizer();
-      }
-    });
-    
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-      if (audio.src) {
-        if (e.code === 'Space') {
-          e.preventDefault();
-          if (audio.paused) {
-            audio.play().then(() => {
-              playPauseIcon.className = 'fas fa-pause';
-              playerContainer.classList.add('playing');
-            });
-          } else {
-            audio.pause();
-            playPauseIcon.className = 'fas fa-play';
-            playerContainer.classList.remove('playing');
-          }
-        } else if (e.code === 'ArrowLeft') {
-          audio.currentTime = Math.max(0, audio.currentTime - 5);
-        } else if (e.code === 'ArrowRight') {
-          audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
-        } else if (e.code === 'ArrowUp') {
-          audio.volume = Math.min(1, audio.volume + 0.1);
-          volumeLevel.style.width = `${audio.volume * 100}%`;
-          updateVolumeIcon(audio.volume);
-        } else if (e.code === 'ArrowDown') {
-          audio.volume = Math.max(0, audio.volume - 0.1);
-          volumeLevel.style.width = `${audio.volume * 100}%`;
-          updateVolumeIcon(audio.volume);
-        } else if (e.code === 'KeyM') {
-          if (audio.muted) {
-            audio.muted = false;
-            volumeLevel.style.width = `${audio.volume * 100}%`;
-            updateVolumeIcon(audio.volume);
-          } else {
-            audio.muted = true;
-            volumeLevel.style.width = '0%';
-            volumeIcon.className = 'fas fa-volume-xmark volume-icon';
-          }
-        } else if (e.code === 'KeyL') {
-          audio.loop = !audio.loop;
-          loopBtn.classList.toggle('active');
-        } else if (e.code === 'KeyT') {
-          themeToggle.click();
-        }
-      }
-    });
-  </script>
+  <script src="script.js"></script>
   
   <script>
     if ('serviceWorker' in navigator) {
