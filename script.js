@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const forwardBtn = document.getElementById("forwardBtn")
   const progressContainer = document.getElementById("progressContainer")
   const progressBar = document.getElementById("progressBar")
+  const progressSegments = document.getElementById("progressSegments")
   const currentTimeDisplay = document.getElementById("currentTime")
   const durationDisplay = document.getElementById("duration")
   const playerContainer = document.getElementById("playerContainer")
@@ -36,6 +37,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const infoBtn = document.getElementById("infoBtn")
   const helpBtn = document.getElementById("helpBtn")
 
+  // Segments elements
+  const addSegmentBtn = document.getElementById("addSegmentBtn")
+  const addSegmentForm = document.getElementById("addSegmentForm")
+  const segmentsList = document.getElementById("segmentsList")
+  const segmentTimeInput = document.getElementById("segmentTime")
+  const segmentTitleInput = document.getElementById("segmentTitle")
+  const segmentDescriptionInput = document.getElementById("segmentDescription")
+  const useCurrentTimeBtn = document.getElementById("useCurrentTimeBtn")
+  const saveSegmentBtn = document.getElementById("saveSegmentBtn")
+  const cancelSegmentBtn = document.getElementById("cancelSegmentBtn")
+
+  // Thêm vào phần khai báo biến
+  const exportSegmentsBtn = document.getElementById("exportSegmentsBtn")
+  const importSegmentsBtn = document.getElementById("importSegmentsBtn")
+  const importFileInput = document.getElementById("importFileInput")
+
   // Add status display for saved state
   const statusDisplay = document.createElement("div")
   statusDisplay.id = "statusDisplay"
@@ -56,13 +73,256 @@ document.addEventListener("DOMContentLoaded", () => {
   let dryGain = null
   let wetGain = null
 
+  // Segments data
+  let segments = []
+  let currentSegmentIndex = -1
+  let editingSegmentId = null
+
   // Variables for auto-save functionality
   let autoSaveInterval = null
   const SAVE_INTERVAL = 5000 // Save every 5 seconds
   const STORAGE_KEY_FILE = "audioPlayer_lastFile"
   const STORAGE_KEY_TIME = "audioPlayer_lastTime"
   const STORAGE_KEY_TIMESTAMP = "audioPlayer_lastTimestamp"
+  const STORAGE_KEY_SEGMENTS = "audioPlayer_segments"
   const MAX_STORAGE_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+
+  // Segments functionality
+  function timeToSeconds(timeStr) {
+    const parts = timeStr.split(":")
+    if (parts.length === 2) {
+      return Number.parseInt(parts[0]) * 60 + Number.parseInt(parts[1])
+    }
+    return 0
+  }
+
+  function secondsToTime(seconds) {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  }
+
+  function generateSegmentId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2)
+  }
+
+  function addSegment(time, title, description = "") {
+    const segment = {
+      id: generateSegmentId(),
+      time: time,
+      title: title,
+      description: description,
+    }
+
+    segments.push(segment)
+    segments.sort((a, b) => a.time - b.time)
+    saveSegments()
+    renderSegments()
+    renderSegmentMarkers()
+  }
+
+  function editSegment(id, time, title, description = "") {
+    const segmentIndex = segments.findIndex((s) => s.id === id)
+    if (segmentIndex !== -1) {
+      segments[segmentIndex] = {
+        ...segments[segmentIndex],
+        time: time,
+        title: title,
+        description: description,
+      }
+      segments.sort((a, b) => a.time - b.time)
+      saveSegments()
+      renderSegments()
+      renderSegmentMarkers()
+    }
+  }
+
+  function deleteSegment(id) {
+    segments = segments.filter((s) => s.id !== id)
+    saveSegments()
+    renderSegments()
+    renderSegmentMarkers()
+  }
+
+  function saveSegments() {
+    try {
+      localStorage.setItem(STORAGE_KEY_SEGMENTS, JSON.stringify(segments))
+    } catch (error) {
+      console.error("Error saving segments:", error)
+    }
+  }
+
+  function loadSegments() {
+    try {
+      const savedSegments = localStorage.getItem(STORAGE_KEY_SEGMENTS)
+      if (savedSegments) {
+        segments = JSON.parse(savedSegments)
+        renderSegments()
+        renderSegmentMarkers()
+      }
+    } catch (error) {
+      console.error("Error loading segments:", error)
+      segments = []
+    }
+  }
+
+  function renderSegments() {
+    if (segments.length === 0) {
+      segmentsList.innerHTML = `
+        <div class="empty-segments">
+          <i class="fas fa-list-ul" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+          <p>Chưa có đoạn nào. Nhấn "Thêm đoạn" để bắt đầu!</p>
+        </div>
+      `
+      return
+    }
+
+    segmentsList.innerHTML = segments
+      .map(
+        (segment) => `
+      <div class="segment-item" data-id="${segment.id}" data-time="${segment.time}">
+        <div class="segment-time">${secondsToTime(segment.time)}</div>
+        <div class="segment-content">
+          <div class="segment-title">${segment.title}</div>
+          ${segment.description ? `<div class="segment-description">${segment.description}</div>` : ""}
+        </div>
+        <div class="segment-actions">
+          <button class="segment-action-btn edit" title="Chỉnh sửa" data-id="${segment.id}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="segment-action-btn delete" title="Xóa" data-id="${segment.id}">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `,
+      )
+      .join("")
+
+    // Add event listeners
+    segmentsList.querySelectorAll(".segment-item").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        if (!e.target.closest(".segment-actions")) {
+          const time = Number.parseFloat(item.dataset.time)
+          if (audio.src) {
+            audio.currentTime = time
+          }
+        }
+      })
+    })
+
+    segmentsList.querySelectorAll(".segment-action-btn.edit").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        const segmentId = btn.dataset.id
+        const segment = segments.find((s) => s.id === segmentId)
+        if (segment) {
+          editingSegmentId = segmentId
+          segmentTimeInput.value = secondsToTime(segment.time)
+          segmentTitleInput.value = segment.title
+          segmentDescriptionInput.value = segment.description || ""
+          addSegmentForm.classList.add("show")
+          saveSegmentBtn.textContent = "Cập nhật"
+        }
+      })
+    })
+
+    segmentsList.querySelectorAll(".segment-action-btn.delete").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        const segmentId = btn.dataset.id
+        const segment = segments.find((s) => s.id === segmentId)
+        if (segment && confirm(`Bạn có chắc muốn xóa đoạn "${segment.title}"?`)) {
+          deleteSegment(segmentId)
+        }
+      })
+    })
+  }
+
+  function renderSegmentMarkers() {
+    if (!audio.duration) return
+
+    progressSegments.innerHTML = segments
+      .map((segment) => {
+        const position = (segment.time / audio.duration) * 100
+        return `<div class="segment-marker" style="left: ${position}%" title="${segment.title} - ${secondsToTime(segment.time)}"></div>`
+      })
+      .join("")
+  }
+
+  function updateCurrentSegment() {
+    if (!audio.src || segments.length === 0) return
+
+    const currentTime = audio.currentTime
+    let newCurrentSegmentIndex = -1
+
+    for (let i = segments.length - 1; i >= 0; i--) {
+      if (currentTime >= segments[i].time) {
+        newCurrentSegmentIndex = i
+        break
+      }
+    }
+
+    if (newCurrentSegmentIndex !== currentSegmentIndex) {
+      // Remove active class from all segments
+      segmentsList.querySelectorAll(".segment-item").forEach((item) => {
+        item.classList.remove("active")
+      })
+
+      // Add active class to current segment
+      if (newCurrentSegmentIndex !== -1) {
+        const currentSegmentElement = segmentsList.querySelector(`[data-id="${segments[newCurrentSegmentIndex].id}"]`)
+        if (currentSegmentElement) {
+          currentSegmentElement.classList.add("active")
+        }
+      }
+
+      currentSegmentIndex = newCurrentSegmentIndex
+    }
+  }
+
+  // Segments event listeners
+  addSegmentBtn.addEventListener("click", () => {
+    editingSegmentId = null
+    segmentTimeInput.value = audio.src ? secondsToTime(audio.currentTime) : "00:00"
+    segmentTitleInput.value = ""
+    segmentDescriptionInput.value = ""
+    addSegmentForm.classList.add("show")
+    saveSegmentBtn.textContent = "Lưu đoạn"
+    segmentTitleInput.focus()
+  })
+
+  useCurrentTimeBtn.addEventListener("click", () => {
+    if (audio.src) {
+      segmentTimeInput.value = secondsToTime(audio.currentTime)
+    }
+  })
+
+  cancelSegmentBtn.addEventListener("click", () => {
+    addSegmentForm.classList.remove("show")
+    editingSegmentId = null
+  })
+
+  saveSegmentBtn.addEventListener("click", () => {
+    const time = timeToSeconds(segmentTimeInput.value)
+    const title = segmentTitleInput.value.trim()
+    const description = segmentDescriptionInput.value.trim()
+
+    if (!title) {
+      alert("Vui lòng nhập tiêu đề đoạn!")
+      segmentTitleInput.focus()
+      return
+    }
+
+    if (editingSegmentId) {
+      editSegment(editingSegmentId, time, title, description)
+    } else {
+      addSegment(time, title, description)
+    }
+
+    addSegmentForm.classList.remove("show")
+    editingSegmentId = null
+  })
 
   // Theme toggle
   themeToggle.addEventListener("click", function () {
@@ -530,6 +790,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Update time displays
       currentTimeDisplay.textContent = formatTime(audio.currentTime)
       durationDisplay.textContent = formatTime(audio.duration)
+
+      // Update current segment
+      updateCurrentSegment()
     }
   })
 
@@ -659,6 +922,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Handle audio loaded metadata
   audio.addEventListener("loadedmetadata", () => {
     durationDisplay.textContent = formatTime(audio.duration)
+    renderSegmentMarkers()
   })
 
   // Clean up visualizer when audio is paused
@@ -718,6 +982,8 @@ document.addEventListener("DOMContentLoaded", () => {
       - Điều chỉnh âm lượng bằng thanh trượt
       - Thay đổi tốc độ phát trong tab Playback
       - Điều chỉnh âm thanh trong tab Equalizer
+      - Thêm đoạn bằng cách nhấn "Thêm đoạn"
+      - Nhấn vào đoạn để nhảy đến thời điểm đó
       - Phím tắt: Space (Phát/Dừng), ← → (Tua), ↑ ↓ (Âm lượng)
       - Trình phát tự động lưu vị trí phát và file gần nhất`)
     })
@@ -781,6 +1047,146 @@ document.addEventListener("DOMContentLoaded", () => {
       savePlaybackState()
     }
   })
+
+  // Thêm vào cuối file, trước phần "Initialize segments on load"
+
+  // Export segments to text file
+  function exportSegments() {
+    if (segments.length === 0) {
+      alert("Không có đoạn nào để xuất!")
+      return
+    }
+
+    const fileName = currentFile ? currentFile.name.replace(/\.[^/.]+$/, "") : "audio"
+
+    // Create text content
+    let textContent = `# Chú thích cho: ${fileName}\n`
+    textContent += `# Tạo ngày: ${new Date().toLocaleString("vi-VN")}\n`
+    textContent += `# Tổng số đoạn: ${segments.length}\n\n`
+
+    segments.forEach((segment, index) => {
+      textContent += `[${secondsToTime(segment.time)}] ${segment.title}\n`
+      if (segment.description) {
+        textContent += `${segment.description}\n`
+      }
+      textContent += `\n`
+    })
+
+    // Create and download file
+    const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${fileName}_segments.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    showStatus(`Đã xuất ${segments.length} đoạn thành công!`)
+  }
+
+  // Import segments from text file
+  function importSegments(fileContent) {
+    const lines = fileContent.split("\n")
+    const importedSegments = []
+    let currentSegment = null
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+
+      // Skip comments and empty lines
+      if (line.startsWith("#") || line === "") continue
+
+      // Check if line contains timestamp [MM:SS]
+      const timeMatch = line.match(/^\[(\d{1,2}:\d{2})\]\s*(.+)$/)
+
+      if (timeMatch) {
+        // Save previous segment if exists
+        if (currentSegment) {
+          importedSegments.push(currentSegment)
+        }
+
+        // Create new segment
+        const timeStr = timeMatch[1]
+        const title = timeMatch[2].trim()
+        const timeSeconds = timeToSeconds(timeStr)
+
+        currentSegment = {
+          id: generateSegmentId(),
+          time: timeSeconds,
+          title: title,
+          description: "",
+        }
+      } else if (currentSegment && line !== "") {
+        // This is description for current segment
+        if (currentSegment.description) {
+          currentSegment.description += "\n" + line
+        } else {
+          currentSegment.description = line
+        }
+      }
+    }
+
+    // Add last segment
+    if (currentSegment) {
+      importedSegments.push(currentSegment)
+    }
+
+    if (importedSegments.length === 0) {
+      alert("Không tìm thấy đoạn nào trong file!\n\nĐịnh dạng đúng:\n[MM:SS] Tiêu đề\nMô tả (tùy chọn)")
+      return
+    }
+
+    // Ask user if they want to replace or merge
+    const action = confirm(
+      `Tìm thấy ${importedSegments.length} đoạn trong file.\n\n` +
+        `Nhấn OK để THAY THẾ tất cả đoạn hiện tại\n` +
+        `Nhấn Cancel để HỦY IMPORT`,
+    )
+
+    if (action) {
+      // Replace all segments
+      segments = importedSegments
+      segments.sort((a, b) => a.time - b.time)
+      saveSegments()
+      renderSegments()
+      renderSegmentMarkers()
+      showStatus(`Đã import ${importedSegments.length} đoạn thành công!`)
+    }
+  }
+
+  // Handle file import
+  function handleImportFile(event) {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const content = e.target.result
+        importSegments(content)
+      } catch (error) {
+        alert("Lỗi khi đọc file: " + error.message)
+      }
+    }
+    reader.readAsText(file, "utf-8")
+
+    // Reset input
+    event.target.value = ""
+  }
+
+  // Event listeners for export/import
+  exportSegmentsBtn.addEventListener("click", exportSegments)
+
+  importSegmentsBtn.addEventListener("click", () => {
+    importFileInput.click()
+  })
+
+  importFileInput.addEventListener("change", handleImportFile)
+
+  // Initialize segments on load
+  loadSegments()
 
   // Check for previous session on load
   tryRestorePreviousSession()
