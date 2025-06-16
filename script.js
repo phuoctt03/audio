@@ -36,6 +36,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const infoBtn = document.getElementById("infoBtn")
   const helpBtn = document.getElementById("helpBtn")
 
+  // Add status display for saved state
+  const statusDisplay = document.createElement("div")
+  statusDisplay.id = "statusDisplay"
+  statusDisplay.className = "status-display"
+  statusDisplay.style.display = "none"
+  playerContainer.appendChild(statusDisplay)
+
   let currentFile = null
   let audioContext = null
   let analyser = null
@@ -48,6 +55,14 @@ document.addEventListener("DOMContentLoaded", () => {
   let convolverGain = null
   let dryGain = null
   let wetGain = null
+
+  // Variables for auto-save functionality
+  let autoSaveInterval = null
+  const SAVE_INTERVAL = 5000 // Save every 5 seconds
+  const STORAGE_KEY_FILE = "audioPlayer_lastFile"
+  const STORAGE_KEY_TIME = "audioPlayer_lastTime"
+  const STORAGE_KEY_TIMESTAMP = "audioPlayer_lastTimestamp"
+  const MAX_STORAGE_AGE = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 
   // Theme toggle
   themeToggle.addEventListener("click", function () {
@@ -277,6 +292,145 @@ document.addEventListener("DOMContentLoaded", () => {
   trebleSlider.addEventListener("input", applyEQSettings)
   reverbSlider.addEventListener("input", applyEQSettings)
 
+  // Save current playback state
+  function savePlaybackState() {
+    if (currentFile && audio.src) {
+      try {
+        // Save file information
+        const fileInfo = {
+          name: currentFile.name,
+          type: currentFile.type,
+          size: currentFile.size,
+          lastModified: currentFile.lastModified,
+        }
+
+        // Save current time and timestamp
+        localStorage.setItem(STORAGE_KEY_FILE, JSON.stringify(fileInfo))
+        localStorage.setItem(STORAGE_KEY_TIME, audio.currentTime.toString())
+        localStorage.setItem(STORAGE_KEY_TIMESTAMP, Date.now().toString())
+
+        // Show save status briefly
+        showStatus("Đã lưu trạng thái phát")
+      } catch (error) {
+        console.error("Error saving playback state:", error)
+      }
+    }
+  }
+
+  // Show status message
+  function showStatus(message) {
+    if (statusDisplay) {
+      statusDisplay.textContent = message
+      statusDisplay.style.display = "block"
+
+      // Hide after 2 seconds
+      setTimeout(() => {
+        statusDisplay.style.display = "none"
+      }, 2000)
+    }
+  }
+
+  // Start auto-save interval
+  function startAutoSave() {
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval)
+    }
+
+    autoSaveInterval = setInterval(savePlaybackState, SAVE_INTERVAL)
+  }
+
+  // Stop auto-save interval
+  function stopAutoSave() {
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval)
+      autoSaveInterval = null
+    }
+  }
+
+  // Check if saved state is too old
+  function isSavedStateTooOld() {
+    const timestamp = localStorage.getItem(STORAGE_KEY_TIMESTAMP)
+    if (!timestamp) return true
+
+    const savedTime = Number.parseInt(timestamp)
+    const currentTime = Date.now()
+
+    return currentTime - savedTime > MAX_STORAGE_AGE
+  }
+
+  // Try to restore previous session
+  function tryRestorePreviousSession() {
+    try {
+      // Check if we have saved data and it's not too old
+      if (isSavedStateTooOld()) {
+        localStorage.removeItem(STORAGE_KEY_FILE)
+        localStorage.removeItem(STORAGE_KEY_TIME)
+        localStorage.removeItem(STORAGE_KEY_TIMESTAMP)
+        return false
+      }
+
+      const fileInfoStr = localStorage.getItem(STORAGE_KEY_FILE)
+      const savedTimeStr = localStorage.getItem(STORAGE_KEY_TIME)
+
+      if (!fileInfoStr || !savedTimeStr) return false
+
+      const fileInfo = JSON.parse(fileInfoStr)
+      const savedTime = Number.parseFloat(savedTimeStr)
+
+      // Show restore option to user
+      if (confirm(`Bạn có muốn tiếp tục phát "${fileInfo.name}" từ ${formatTime(savedTime)}?`)) {
+        // User needs to select the file again since we can't access the file directly from storage
+        showStatus("Vui lòng chọn lại file để tiếp tục phát")
+        return true
+      } else {
+        // User declined, clear saved state
+        localStorage.removeItem(STORAGE_KEY_FILE)
+        localStorage.removeItem(STORAGE_KEY_TIME)
+        localStorage.removeItem(STORAGE_KEY_TIMESTAMP)
+        return false
+      }
+    } catch (error) {
+      console.error("Error restoring session:", error)
+      return false
+    }
+  }
+
+  // Check if selected file matches saved file
+  function isMatchingSavedFile(file) {
+    try {
+      const fileInfoStr = localStorage.getItem(STORAGE_KEY_FILE)
+      if (!fileInfoStr) return false
+
+      const fileInfo = JSON.parse(fileInfoStr)
+
+      // Compare file properties to see if it's likely the same file
+      return file.name === fileInfo.name && file.size === fileInfo.size && file.type === fileInfo.type
+    } catch (error) {
+      return false
+    }
+  }
+
+  // Restore playback position if file matches saved file
+  function restorePlaybackPosition(file) {
+    if (isMatchingSavedFile(file)) {
+      const savedTimeStr = localStorage.getItem(STORAGE_KEY_TIME)
+      if (savedTimeStr) {
+        const savedTime = Number.parseFloat(savedTimeStr)
+
+        // Set timeout to ensure audio is loaded before seeking
+        setTimeout(() => {
+          if (audio.readyState >= 2) {
+            audio.currentTime = savedTime
+            showStatus(`Đã khôi phục vị trí phát: ${formatTime(savedTime)}`)
+          }
+        }, 500)
+
+        return true
+      }
+    }
+    return false
+  }
+
   // File input handling
   fileInput.addEventListener("change", function () {
     const file = this.files[0]
@@ -294,6 +448,9 @@ document.addEventListener("DOMContentLoaded", () => {
         audioContext.resume()
       }
 
+      // Check if we should restore playback position
+      const shouldRestore = restorePlaybackPosition(file)
+
       audio
         .play()
         .then(() => {
@@ -302,6 +459,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Initialize visualizer
           initVisualizer()
+
+          // Start auto-save
+          startAutoSave()
         })
         .catch((error) => {
           console.error("Error playing audio:", error)
@@ -329,6 +489,9 @@ document.addEventListener("DOMContentLoaded", () => {
           .then(() => {
             playPauseIcon.className = "fas fa-pause"
             playerContainer.classList.add("playing")
+
+            // Restart auto-save when playing
+            startAutoSave()
           })
           .catch((error) => {
             console.error("Error playing audio:", error)
@@ -338,6 +501,9 @@ document.addEventListener("DOMContentLoaded", () => {
       audio.pause()
       playPauseIcon.className = "fas fa-play"
       playerContainer.classList.remove("playing")
+
+      // Save state when pausing
+      savePlaybackState()
     }
   })
 
@@ -481,6 +647,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!audio.loop) {
       playPauseIcon.className = "fas fa-play"
       playerContainer.classList.remove("playing")
+
+      // Save final state
+      savePlaybackState()
+
+      // Stop auto-save when ended
+      stopAutoSave()
     }
   })
 
@@ -546,7 +718,8 @@ document.addEventListener("DOMContentLoaded", () => {
       - Điều chỉnh âm lượng bằng thanh trượt
       - Thay đổi tốc độ phát trong tab Playback
       - Điều chỉnh âm thanh trong tab Equalizer
-      - Phím tắt: Space (Phát/Dừng), ← → (Tua), ↑ ↓ (Âm lượng)`)
+      - Phím tắt: Space (Phát/Dừng), ← → (Tua), ↑ ↓ (Âm lượng)
+      - Trình phát tự động lưu vị trí phát và file gần nhất`)
     })
   }
 
@@ -559,11 +732,13 @@ document.addEventListener("DOMContentLoaded", () => {
           audio.play().then(() => {
             playPauseIcon.className = "fas fa-pause"
             playerContainer.classList.add("playing")
+            startAutoSave()
           })
         } else {
           audio.pause()
           playPauseIcon.className = "fas fa-play"
           playerContainer.classList.remove("playing")
+          savePlaybackState()
         }
       } else if (e.code === "ArrowLeft") {
         audio.currentTime = Math.max(0, audio.currentTime - 5)
@@ -592,7 +767,40 @@ document.addEventListener("DOMContentLoaded", () => {
         loopBtn.classList.toggle("active")
       } else if (e.code === "KeyT") {
         themeToggle.click()
+      } else if (e.code === "KeyS") {
+        // Manual save with S key
+        savePlaybackState()
+        showStatus("Đã lưu thủ công vị trí phát")
       }
     }
   })
+
+  // Save state before page unload
+  window.addEventListener("beforeunload", () => {
+    if (currentFile && audio.src && audio.currentTime > 0) {
+      savePlaybackState()
+    }
+  })
+
+  // Check for previous session on load
+  tryRestorePreviousSession()
+
+  // Add CSS for status display
+  const style = document.createElement("style")
+  style.textContent = `
+    .status-display {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 1000;
+      transition: opacity 0.3s ease;
+    }
+  `
+  document.head.appendChild(style)
 })
