@@ -42,6 +42,7 @@
           
           <div class="progress-container" id="progressContainer">
             <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-segments" id="progressSegments"></div>
           </div>
           
           <div class="time-display">
@@ -67,6 +68,55 @@
               <div class="volume-level" id="volumeLevel"></div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segments Section -->
+    <div class="segments-section">
+      <div class="segments-header">
+        <h3 class="segments-title">
+          <i class="fas fa-list"></i>
+          Danh sách đoạn
+        </h3>
+        <button class="add-segment-btn" id="addSegmentBtn">
+          <i class="fas fa-plus"></i>
+          Thêm đoạn
+        </button>
+      </div>
+
+      <!-- Add segment form -->
+      <div class="add-segment-form" id="addSegmentForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Thời gian bắt đầu</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="text" class="form-input" id="segmentTime" placeholder="00:00" />
+              <button class="current-time-btn" id="useCurrentTimeBtn">
+                <i class="fas fa-clock"></i> Hiện tại
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tiêu đề đoạn</label>
+            <input type="text" class="form-input" id="segmentTitle" placeholder="Nhập tiêu đề..." />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mô tả (tùy chọn)</label>
+          <textarea class="form-input form-textarea" id="segmentDescription" placeholder="Nhập mô tả..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="form-btn secondary" id="cancelSegmentBtn">Hủy</button>
+          <button class="form-btn primary" id="saveSegmentBtn">Lưu đoạn</button>
+        </div>
+      </div>
+
+      <!-- Segments list -->
+      <div class="segments-list" id="segmentsList">
+        <div class="empty-segments">
+          <i class="fas fa-list-ul" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+          <p>Chưa có đoạn nào. Nhấn "Thêm đoạn" để bắt đầu!</p>
         </div>
       </div>
     </div>
@@ -159,6 +209,14 @@
               <i class="fas fa-download"></i>
               <span>Tải xuống</span>
             </button>
+            <button class="tool-btn" id="exportSegmentsBtn" title="Xuất chú thích">
+              <i class="fas fa-file-export"></i>
+              <span>Xuất chú thích</span>
+            </button>
+            <button class="tool-btn" id="importSegmentsBtn" title="Nhập chú thích">
+              <i class="fas fa-file-import"></i>
+              <span>Nhập chú thích</span>
+            </button>
             <button class="tool-btn" id="shareBtn" title="Chia sẻ">
               <i class="fas fa-share-alt"></i>
               <span>Chia sẻ</span>
@@ -180,6 +238,9 @@
       <p>Phím tắt: Space (Phát/Dừng), ← → (Tua), ↑ ↓ (Âm lượng), M (Tắt tiếng), L (Lặp lại)</p>
     </div>
   </div>
+
+  <!-- Hidden file input for importing segments -->
+  <input type="file" id="importFileInput" accept=".txt,.json" style="display: none;">
 
   <script src="script.js"></script>
   
