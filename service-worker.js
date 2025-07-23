@@ -2,10 +2,10 @@ self.addEventListener("install", event => {
   event.waitUntil(
     caches.open("audio-app-cache").then(cache => {
       return cache.addAll([
-        "./",
-        "./index.html",
-        "./manifest.json",
-        "./icons/icon-512.png"
+        "./audio/",
+        "./audio/index.html",
+        "./audio/manifest.json",
+        "./audio/icons/icon-512.png"
       ]);
     })
   );
